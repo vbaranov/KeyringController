@@ -144,6 +144,22 @@ class KeyringController extends EventEmitter {
     })
   }
 
+  // Change Password
+  // @string oldPassword
+  // @string newPassword
+  //
+  // returns Promise( @object state )
+  //
+  // Attempts to decrypt the current vault, loads its keyrings into memory and changes password for unlocked keyrings
+  changePassword (oldPassword, newPassword) {
+    return this.unlockKeyrings(oldPassword)
+    .then((keyrings) => {
+      this.keyrings = keyrings
+      this.persistAllKeyrings(newPassword)
+      return this.fullUpdate()
+    })
+  }
+
   // Add New Keyring
   // @string type
   // @object opts

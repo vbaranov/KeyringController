@@ -9,6 +9,7 @@ const sinon = require('sinon')
 describe('KeyringController', () => {
   let keyringController
   const password = 'password123'
+  const newPassword = 'password12345'
   const seedWords = 'puzzle seed penalty soldier say clay field arctic metal hen cage runway'
   const addresses = ['0xeF35cA8EbB9669A35c31b5F6f249A9941a812AC1'.toLowerCase()]
   const accounts = []
@@ -46,7 +47,6 @@ describe('KeyringController', () => {
       assert.equal(keyringController.keyrings.length, 1, 'has one keyring')
     })
   })
-
 
   describe('#createNewVaultAndKeychain', function () {
     this.timeout(10000)
@@ -178,6 +178,22 @@ describe('KeyringController', () => {
     it('returns the list of keyrings', async () => {
       keyringController.setLocked()
       const keyrings = await keyringController.unlockKeyrings(password)
+      assert.notStrictEqual(keyrings.length, 0)
+      keyrings.forEach(keyring => {
+        assert.strictEqual(keyring.wallets.length, 1)
+      })
+    })
+  })
+
+  describe('#changePassword', function () {
+    it('should change password', async () => {
+      await keyringController.changePassword(password, newPassword)
+      assert.equal(keyringController.password, newPassword)
+    })
+
+    it('returns the list of keyrings for a new password', async () => {
+      keyringController.setLocked()
+      const keyrings = await keyringController.unlockKeyrings(newPassword)
       assert.notStrictEqual(keyrings.length, 0)
       keyrings.forEach(keyring => {
         assert.strictEqual(keyring.wallets.length, 1)
