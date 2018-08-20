@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/MetaMask/KeyringController.git"
+    "url": "git+ssh://git@github.com/vbaranov/KeyringController.git"
   },
   "keywords": [
     "ethereum",
@@ -19,9 +19,9 @@
   "author": "Dan Finlay <dan@danfinlay.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/MetaMask/KeyringController/issues"
+    "url": "https://github.com/vbaranov/KeyringController/issues"
   },
-  "homepage": "https://github.com/MetaMask/KeyringController#readme",
+  "homepage": "https://github.com/vbaranov/KeyringController#readme",
   "devDependencies": {
     "clone": "^2.1.1",
     "eslint-plugin-mocha": "^4.11.0",
