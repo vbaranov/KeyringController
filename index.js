@@ -142,6 +142,9 @@ class KeyringController extends EventEmitter {
       this.keyrings = keyrings
       return this.fullUpdate()
     })
+    .catch((err) => {
+      return Promise.reject(err)
+    })
   }
 
   // Change Password
@@ -157,6 +160,9 @@ class KeyringController extends EventEmitter {
       this.keyrings = keyrings
       this.persistAllKeyrings(newPassword)
       return this.fullUpdate()
+    })
+    .catch((err) => {
+      return Promise.reject(err)
     })
   }
 
@@ -436,7 +442,12 @@ class KeyringController extends EventEmitter {
     }
 
     await this.clearKeyrings()
-    const vault = await this.encryptor.decrypt(password, encryptedVault)
+    let vault
+    try {
+      vault = await this.encryptor.decrypt(password, encryptedVault)
+    } catch (e) {
+      return Promise.reject('Incorrect password')
+    }
     this.password = password
     this.memStore.updateState({ isUnlocked: true })
     await Promise.all(vault.map(this.restoreKeyring.bind(this)))
