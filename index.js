@@ -84,7 +84,7 @@ class KeyringController extends EventEmitter {
   // creates a new HD wallet from the given seed with 1 account.
   createNewVaultAndRestore (password, seed) {
     if (typeof password !== 'string') {
-      return Promise.reject('Password must be text.')
+      return Promise.reject(new Error('Password must be text.'))
     }
 
     if (!bip39.validateMnemonic(seed)) {
@@ -137,13 +137,16 @@ class KeyringController extends EventEmitter {
   // Temporarily also migrates any old-style vaults first, as well.
   // (Pre MetaMask 3.0.0)
   submitPassword (password) {
+    const oldKeyrings = this.keyrings
     return this.unlockKeyrings(password)
     .then((keyrings) => {
       this.keyrings = keyrings
       return this.fullUpdate()
     })
-    .catch((err) => {
-      return Promise.reject(err)
+    .catch(async (err) => {
+      this.keyrings = oldKeyrings
+      await this._updateMemStoreKeyrings()
+      return Promise.reject(new Error(err))
     })
   }
 
@@ -155,14 +158,17 @@ class KeyringController extends EventEmitter {
   //
   // Attempts to decrypt the current vault, loads its keyrings into memory and changes password for unlocked keyrings
   changePassword (oldPassword, newPassword) {
+    const oldKeyrings = this.keyrings
     return this.unlockKeyrings(oldPassword)
     .then((keyrings) => {
       this.keyrings = keyrings
       this.persistAllKeyrings(newPassword)
       return this.fullUpdate()
     })
-    .catch((err) => {
-      return Promise.reject(err)
+    .catch(async (err) => {
+      this.keyrings = oldKeyrings
+      await this._updateMemStoreKeyrings()
+      return Promise.reject(new Error(err))
     })
   }
 
@@ -272,7 +278,7 @@ class KeyringController extends EventEmitter {
         return keyring.exportAccount(normalizeAddress(address))
       })
     } catch (e) {
-      return Promise.reject(e)
+      return Promise.reject(new Error(e))
     }
   }
 
@@ -295,7 +301,7 @@ class KeyringController extends EventEmitter {
         return keyring.getAccounts()
 
       } else {
-        Promise.reject(`Keyring ${keyring.type} doesn't support account removal operations`)
+        Promise.reject(new Error(`Keyring ${keyring.type} doesn't support account removal operations`))
       }
     })
     .then(accounts => {
@@ -308,7 +314,7 @@ class KeyringController extends EventEmitter {
     .then(this._updateMemStoreKeyrings.bind(this))
     .then(this.fullUpdate.bind(this))
     .catch( e => {
-      return Promise.reject(e)
+      return Promise.reject(new Error(e))
     })
   }
 
@@ -404,7 +410,7 @@ class KeyringController extends EventEmitter {
   // and persists that encrypted string to storage.
   persistAllKeyrings (password = this.password) {
     if (typeof password !== 'string') {
-      return Promise.reject('KeyringController - password is not a string')
+      return Promise.reject(new Error('KeyringController - password is not a string'))
     }
 
     this.password = password
@@ -446,7 +452,7 @@ class KeyringController extends EventEmitter {
     try {
       vault = await this.encryptor.decrypt(password, encryptedVault)
     } catch (e) {
-      return Promise.reject('Incorrect password')
+      return Promise.reject(new Error('Incorrect password'))
     }
     this.password = password
     this.memStore.updateState({ isUnlocked: true })
