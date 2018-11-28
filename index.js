@@ -11,9 +11,36 @@ const normalizeAddress = sigUtil.normalize
 // Keyrings:
 const SimpleKeyring = require('eth-simple-keyring')
 const HdKeyring = require('eth-hd-keyring')
+
+const typeSimpleAddress = 'Simple Address'
+class SimpleAddress extends EventEmitter {
+
+  /* PUBLIC METHODS */
+
+  constructor (opts) {
+    super()
+    this.type = typeSimpleAddress
+    this.wallets = opts
+  }
+
+  getAccounts () {
+    return Promise.resolve(this.wallets.map(w => ethUtil.bufferToHex(w)))
+  }
+
+  removeAccount (address) {
+    if(!this.wallets.map(w => w.includes(address.toLowerCase()))){
+      throw new Error(`Address ${address} not found in this keyring`)
+    }
+    this.wallets = this.wallets.filter( w => w.toLowerCase() !== address.toLowerCase())
+  }
+}
+SimpleAddress.type = typeSimpleAddress
+
+
 const keyringTypes = [
   SimpleKeyring,
   HdKeyring,
+  SimpleAddress,
 ]
 
 class KeyringController extends EventEmitter {
@@ -233,6 +260,7 @@ class KeyringController extends EventEmitter {
     .then((accounts) => {
       switch (type) {
         case 'Simple Key Pair':
+        case 'Simple Address':
           const isNotIncluded = !accounts.find((key) => key === newAccount[0] || key === ethUtil.stripHexPrefix(newAccount[0]))
           return (isNotIncluded) ? Promise.resolve(newAccount) : Promise.reject(new Error('The account you\'re are trying to import is a duplicate'))
         default:
@@ -416,6 +444,14 @@ class KeyringController extends EventEmitter {
     this.password = password
     this.memStore.updateState({ isUnlocked: true })
     return Promise.all(this.keyrings.map((keyring) => {
+      if (keyring.type === 'Simple Address') {
+        return new Promise((resolve, reject) => {
+          resolve({
+            type: keyring.type,
+            data: keyring.wallets,
+          })
+        })
+      }
       return Promise.all([keyring.type, keyring.serialize()])
       .then((serializedKeyringArray) => {
         // Label the output values on each serialized Keyring:
@@ -474,7 +510,16 @@ class KeyringController extends EventEmitter {
 
     const Keyring = this.getKeyringClassForType(type)
     const keyring = new Keyring()
-    return keyring.deserialize(data)
+    let ddata
+    if ( type === typeSimpleAddress ) {
+      ddata = new Promise((resolve) => {
+        keyring.wallets = data
+        resolve()
+      })
+    } else {
+      ddata = keyring.deserialize(data)
+    }
+    return ddata
     .then(() => {
       return keyring.getAccounts()
     })
