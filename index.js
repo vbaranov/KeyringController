@@ -20,20 +20,32 @@ class SimpleAddress extends EventEmitter {
   constructor (opts) {
     super()
     this.type = typeSimpleAddress
-    this.wallets = opts
+    const wallet = {
+      abi: opts && opts.abi,
+      network: opts && opts.network,
+      address: opts && opts.addr,
+    }
+    this.wallets = [ wallet ]
   }
 
   getAccounts () {
     return Promise.resolve(this.wallets.map(w => ethUtil.bufferToHex(w)))
   }
 
+  getProps () {
+    return this.wallets && this.wallets[0]
+  }
+
   removeAccount (address) {
-    if(!this.wallets.map(w => w.includes(address.toLowerCase()))){
+    if(!this.wallets.map(w => w.address.includes(address.toLowerCase()))){
       throw new Error(`Address ${address} not found in this keyring`)
     }
-    this.wallets = this.wallets.filter( w => w.toLowerCase() !== address.toLowerCase())
+    this.wallets = this.wallets.filter( w => {
+      return w.address.toLowerCase() !== address.toLowerCase()
+    })
   }
 }
+
 SimpleAddress.type = typeSimpleAddress
 
 
@@ -565,6 +577,18 @@ class KeyringController extends EventEmitter {
     return addrs.map(normalizeAddress)
   }
 
+  // Get Properties of multisig
+  // returns Promise( @Array[ @string accounts ] )
+  //
+  // Returns the public properties of account.
+  getProps (multisigAddr) {
+    const keyrings = this.keyrings || []
+    const keyringsFiltered = keyrings.filter(kr => kr.getProps && kr.getProps().address === multisigAddr)
+    const keyringsPropsArr = keyringsFiltered.map(kr => kr.getProps())
+    const keyringsProps = keyringsPropsArr && keyringsPropsArr[0]
+    return keyringsProps
+  }
+
   // Get Keyring For Account
   // @string address
   //
@@ -602,11 +626,16 @@ class KeyringController extends EventEmitter {
   //
   // Is used for adding the current keyrings to the state object.
   displayForKeyring (keyring) {
+    let network
+    if (keyring.type === typeSimpleAddress) {
+      network = keyring.wallets && keyring.wallets[0] && keyring.wallets[0].network
+    }
     return keyring.getAccounts()
     .then((accounts) => {
       return {
         type: keyring.type,
         accounts: accounts.map(normalizeAddress),
+        network: network
       }
     })
   }
