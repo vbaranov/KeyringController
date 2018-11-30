@@ -29,7 +29,7 @@ class SimpleAddress extends EventEmitter {
   }
 
   getAccounts () {
-    return Promise.resolve(this.wallets.map(w => ethUtil.bufferToHex(w)))
+    return Promise.resolve(this.wallets.map(w => ethUtil.bufferToHex(w.address)))
   }
 
   getProps () {
@@ -230,8 +230,8 @@ class KeyringController extends EventEmitter {
       return this.checkForDuplicate(type, accounts)
     })
     .then(() => {
-        this.keyrings.push(keyring)
-        return this.persistAllKeyrings()
+      this.keyrings.push(keyring)
+      return this.persistAllKeyrings()
     })
     .then(() => this._updateMemStoreKeyrings())
     .then(() => this.fullUpdate())
@@ -272,7 +272,7 @@ class KeyringController extends EventEmitter {
     .then((accounts) => {
       switch (type) {
         case 'Simple Key Pair':
-        case 'Simple Address':
+        case typeSimpleAddress:
           const isNotIncluded = !accounts.find((key) => key === newAccount[0] || key === ethUtil.stripHexPrefix(newAccount[0]))
           return (isNotIncluded) ? Promise.resolve(newAccount) : Promise.reject(new Error('The account you\'re are trying to import is a duplicate'))
         default:
@@ -456,7 +456,7 @@ class KeyringController extends EventEmitter {
     this.password = password
     this.memStore.updateState({ isUnlocked: true })
     return Promise.all(this.keyrings.map((keyring) => {
-      if (keyring.type === 'Simple Address') {
+      if (keyring.type === typeSimpleAddress) {
         return new Promise((resolve, reject) => {
           resolve({
             type: keyring.type,
