@@ -227,7 +227,7 @@ class KeyringController extends EventEmitter {
     const keyring = new Keyring(opts)
     return keyring.getAccounts()
     .then((accounts) => {
-      return this.checkForDuplicate(type, accounts)
+      return this.checkForDuplicate(type, accounts, opts)
     })
     .then(() => {
       this.keyrings.push(keyring)
@@ -267,14 +267,24 @@ class KeyringController extends EventEmitter {
   // but in the future
   // should possibly add HD and other types
   //
-  checkForDuplicate (type, newAccount) {
+  checkForDuplicate (type, newAccount, opts) {
     return this.getAccounts()
     .then((accounts) => {
       switch (type) {
-        case 'Simple Key Pair':
-        case typeSimpleAddress:
-          const isNotIncluded = !accounts.find((key) => key === newAccount[0] || key === ethUtil.stripHexPrefix(newAccount[0]))
-          return (isNotIncluded) ? Promise.resolve(newAccount) : Promise.reject(new Error('The account you\'re are trying to import is a duplicate'))
+        case 'Simple Key Pair': {
+          const isIncluded = accounts.find((key) => key === newAccount[0] || key === ethUtil.stripHexPrefix(newAccount[0]))
+          return (!isIncluded) ? Promise.resolve(newAccount) : Promise.reject(new Error('The account you\'re are trying to import is a duplicate'))
+        }
+        case typeSimpleAddress: {
+          const isIncluded = this.keyrings.find(kr => {
+            const walletFound = kr.wallets.find(wallet => {
+              return wallet.address === newAccount[0] && wallet.network === opts.network
+            })
+            console.log(walletFound)
+            return kr.type === type && walletFound
+          })
+          return (!isIncluded) ? Promise.resolve(newAccount) : Promise.reject(new Error('The account you\'re are trying to import is a duplicate'))
+        }
         default:
           return Promise.resolve(newAccount)
       }
