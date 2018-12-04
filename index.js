@@ -277,10 +277,9 @@ class KeyringController extends EventEmitter {
         }
         case typeSimpleAddress: {
           const isIncluded = this.keyrings.find(kr => {
-            const walletFound = kr.wallets.find(wallet => {
+            const walletFound = kr.wallets && kr.wallets.find(wallet => {
               return wallet.address === newAccount[0] && wallet.network === opts.network
             })
-            console.log(walletFound)
             return kr.type === type && walletFound
           })
           return (!isIncluded) ? Promise.resolve(newAccount) : Promise.reject(new Error('The account you\'re are trying to import is a duplicate'))
