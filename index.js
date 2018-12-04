@@ -582,8 +582,14 @@ class KeyringController extends EventEmitter {
   //
   // Returns the public properties of account.
   getProps (multisigAddr) {
+    if (!multisigAddr) {
+      return {}
+    }
     const keyrings = this.keyrings || []
-    const keyringsFiltered = keyrings.filter(kr => kr.getProps && kr.getProps().address === multisigAddr)
+    const keyringsFiltered = keyrings.filter((kr, ind) => {
+      const addressFromKeyring = kr.getProps && kr.getProps().address && kr.getProps().address.toLowerCase()
+      return addressFromKeyring === multisigAddr.toLowerCase()
+    })
     const keyringsPropsArr = keyringsFiltered.map(kr => kr.getProps())
     const keyringsProps = keyringsPropsArr && keyringsPropsArr[0]
     return keyringsProps
