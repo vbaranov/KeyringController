@@ -36,12 +36,12 @@ class SimpleAddress extends EventEmitter {
     return this.wallets && this.wallets[0]
   }
 
-  removeAccount (address) {
+  removeAccount (address, network) {
     if(!this.wallets.map(w => w.address.includes(address.toLowerCase()))){
       throw new Error(`Address ${address} not found in this keyring`)
     }
     this.wallets = this.wallets.filter( w => {
-      return w.address.toLowerCase() !== address.toLowerCase()
+      return w.address.toLowerCase() !== address.toLowerCase() && w.network !== network
     })
   }
 }
@@ -340,12 +340,12 @@ class KeyringController extends EventEmitter {
   // If the account is the last/only one then it also removes the keyring.
   //
   // Returns a Promise.
-  removeAccount (address) {
-    return this.getKeyringForAccount(address)
+  removeAccount (address, network) {
+    return this.getKeyringForAccount(address, network)
     .then((keyring) => {
       // Not all the keyrings support this, so we have to check...
       if(typeof keyring.removeAccount === 'function') {
-        keyring.removeAccount(address)
+        keyring.removeAccount(address, network)
         this.emit('removedAccount', address)
         return keyring.getAccounts()
 
@@ -611,7 +611,7 @@ class KeyringController extends EventEmitter {
   //
   // Returns the currently initialized keyring that manages
   // the specified `address` if one exists.
-  getKeyringForAccount (address) {
+  getKeyringForAccount (address, network) {
     const hexed = normalizeAddress(address)
     log.debug(`KeyringController - getKeyringForAccount: ${hexed}`)
 
@@ -622,8 +622,13 @@ class KeyringController extends EventEmitter {
       ])
     }))
     .then(filter((candidate) => {
+      let isCorrectNetwork = true
+      if (candidate.type === typeSimpleAddress) {
+        const props = candidate.getProps && candidate.getProps()
+        isCorrectNetwork = props.network === network
+      }
       const accounts = candidate[1].map(normalizeAddress)
-      return accounts.includes(hexed)
+      return accounts.includes(hexed) && isCorrectNetwork
     }))
     .then((winners) => {
       if (winners && winners.length > 0) {
