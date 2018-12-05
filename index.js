@@ -623,8 +623,9 @@ class KeyringController extends EventEmitter {
     }))
     .then(filter((candidate) => {
       let isCorrectNetwork = true
-      if (candidate.type === typeSimpleAddress) {
-        const props = candidate.getProps && candidate.getProps()
+      const candidateType = candidate && candidate[0] && candidate[0].type
+      if (candidateType === typeSimpleAddress) {
+        const props = candidate && candidate[0] && candidate[0].getProps && candidate[0].getProps()
         isCorrectNetwork = props.network === network
       }
       const accounts = candidate[1].map(normalizeAddress)
