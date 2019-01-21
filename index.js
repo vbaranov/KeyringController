@@ -23,7 +23,22 @@ class SimpleAddress extends EventEmitter {
     const wallet = {
       abi: opts && opts.abi,
       network: opts && opts.network,
-      address: opts && opts.addr,
+      address: opts && opts.addr && opts.addr.toLowerCase(),
+      contractType: opts && opts.contractType,
+    }
+    this.wallets = [ wallet ]
+  }
+
+  updateABI (address, network, newABI) {
+    const savedWallet = this.wallets.find(w => { return w.address.includes(normalizeAddress(address)) && w.network === network })
+    if (!savedWallet) {
+      throw new Error(`Address ${address} not found in this keyring`)
+    }
+    const wallet = {
+      abi: newABI,
+      network: savedWallet && savedWallet.network,
+      address: savedWallet && savedWallet.address,
+      contractType: savedWallet && savedWallet.contractType,
     }
     this.wallets = [ wallet ]
   }
@@ -587,7 +602,7 @@ class KeyringController extends EventEmitter {
   }
 
   // Get Properties of multisig
-  // returns Promise( @Array[ @string accounts ] )
+  // @string multisigAddr
   //
   // Returns the public properties of account.
   getProps (multisigAddr) {
@@ -602,6 +617,26 @@ class KeyringController extends EventEmitter {
     const keyringsPropsArr = keyringsFiltered.map(kr => kr.getProps())
     const keyringsProps = keyringsPropsArr && keyringsPropsArr[0]
     return keyringsProps
+  }
+
+  // Updates ABI of implementation for proxy contract
+  // @string proxyAddr
+  // @string network
+  // @string newABI
+  //
+  // Returns nothing
+  // todo network is not used
+  updateABI (proxyAddr, network, newABI) {
+    if (!proxyAddr) {
+      return {}
+    }
+    const keyrings = this.keyrings || []
+    const keyringsFiltered = keyrings.filter((kr, ind) => {
+      const addressFromKeyring = kr.getProps && kr.getProps().address && kr.getProps().address.toLowerCase()
+      return addressFromKeyring === proxyAddr.toLowerCase()
+    })
+    const keyringsPropsArr = keyringsFiltered.map(kr => kr.updateABI(proxyAddr, network, newABI))
+    return
   }
 
   // Get Keyring For Account
