@@ -16,7 +16,7 @@ describe('KeyringController', () => {
   // let originalKeystore
 
   beforeEach(async () => {
-    this.sinon = sinon.sandbox.create()
+    this.sinon = sinon
     window.localStorage = {} // Hacking localStorage support into JSDom
 
     keyringController = new KeyringController({
