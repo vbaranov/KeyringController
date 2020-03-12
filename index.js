@@ -130,13 +130,14 @@ class KeyringController extends EventEmitter {
   // CreateNewVaultAndRestore
   // @string password - The password to encrypt the vault with
   // @string seed - The BIP44-compliant seed phrase.
+  // @string hdPath - Path to derive accounts.
   //
   // returns Promise( @object state )
   //
   // Destroys any old encrypted storage,
   // creates a new encrypted store with the given password,
   // creates a new HD wallet from the given seed with 1 account.
-  createNewVaultAndRestore (password, seed) {
+  createNewVaultAndRestore (password, seed, dpath) {
     if (typeof password !== 'string') {
       return Promise.reject(new Error('Password must be text.'))
     }
@@ -152,6 +153,7 @@ class KeyringController extends EventEmitter {
       return this.addNewKeyring('HD Key Tree', {
         mnemonic: seed,
         numberOfAccounts: 1,
+        hdPath: dpath,
       })
     })
     .then((firstKeyring) => {
@@ -190,9 +192,23 @@ class KeyringController extends EventEmitter {
   //
   // Temporarily also migrates any old-style vaults first, as well.
   // (Pre MetaMask 3.0.0)
-  submitPassword (password) {
+  submitPassword (password, dPath) {
     const oldKeyrings = this.keyrings
-    return this.unlockKeyrings(password)
+    return this.unlockKeyrings(password, dPath)
+    .then((keyrings) => {
+      this.keyrings = keyrings
+      return this.fullUpdate()
+    })
+    .catch(async (err) => {
+      this.keyrings = oldKeyrings
+      await this._updateMemStoreKeyrings()
+      return Promise.reject(new Error(err))
+    })
+  }
+
+  deriveKeyringFromNewDPath (dPath) {
+    const oldKeyrings = this.keyrings
+    return this.unlockKeyrings(this.password, dPath)
     .then((keyrings) => {
       this.keyrings = keyrings
       return this.fullUpdate()
@@ -211,9 +227,9 @@ class KeyringController extends EventEmitter {
   // returns Promise( @object state )
   //
   // Attempts to decrypt the current vault, loads its keyrings into memory and changes password for unlocked keyrings
-  changePassword (oldPassword, newPassword) {
+  changePassword (oldPassword, newPassword, dPath) {
     const oldKeyrings = this.keyrings
-    return this.unlockKeyrings(oldPassword)
+    return this.unlockKeyrings(oldPassword, dPath)
     .then((keyrings) => {
       this.keyrings = keyrings
       this.persistAllKeyrings(newPassword)
@@ -513,22 +529,26 @@ class KeyringController extends EventEmitter {
   //
   // Attempts to unlock the persisted encrypted storage,
   // initializing the persisted keyrings to RAM.
-  async unlockKeyrings (password) {
+  async unlockKeyrings (password, dPath) {
     const encryptedVault = this.store.getState().vault
     if (!encryptedVault) {
       throw new Error('Cannot unlock without a previous vault.')
     }
 
     await this.clearKeyrings()
-    let vault
+    let vaults
     try {
-      vault = await this.encryptor.decrypt(password, encryptedVault)
+      vaults = await this.encryptor.decrypt(password, encryptedVault)
     } catch (e) {
       return Promise.reject(new Error('Incorrect password'))
     }
     this.password = password
     this.memStore.updateState({ isUnlocked: true })
-    await Promise.all(vault.map(this.restoreKeyring.bind(this)))
+    const vaultsUpdated = vaults.map(vault => {
+      vault.data.hdPath = dPath
+      return vault
+    })
+    await Promise.all(vaultsUpdated.map(this.restoreKeyring.bind(this)))
     return this.keyrings
   }
 
