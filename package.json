@@ -36,12 +36,12 @@
     "bip39": "^2.4.0",
     "bluebird": "^3.5.0",
     "browser-passworder": "^2.0.3",
-    "eth-hd-keyring": "github:vbaranov/eth-hd-keyring#2.0.2",
+    "eth-hd-keyring": "github:vbaranov/eth-hd-keyring#2.1.0",
     "eth-sig-util": "^1.4.0",
-    "eth-simple-keyring": "^2.0.0",
+    "eth-simple-keyring": "^3.5.0",
     "ethereumjs-util": "^5.1.2",
     "loglevel": "^1.5.0",
-    "obs-store": "^2.4.1",
+    "obs-store": "^4.0.3",
     "promise-filter": "^1.1.0"
   }
 }
