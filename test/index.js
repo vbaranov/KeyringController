@@ -236,21 +236,20 @@ describe('KeyringController', function () {
   })
 
   describe('#changePassword', function () {
-    it('should change password', async () => {
+    it('should change password', async function () {
       await keyringController.changePassword(password, newPassword)
       assert.equal(keyringController.password, newPassword)
     })
 
-    it('returns the list of keyrings for a new password', async () => {
+    it('returns the list of keyrings for a new password', async function () {
       keyringController.setLocked()
       const keyrings = await keyringController.unlockKeyrings(newPassword)
       assert.notStrictEqual(keyrings.length, 0)
-      keyrings.forEach(keyring => {
+      keyrings.forEach((keyring) => {
         assert.strictEqual(keyring.wallets.length, 1)
       })
     })
   })
-
 
 
   describe('getAppKeyAddress', function () {
