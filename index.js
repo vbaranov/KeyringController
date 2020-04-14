@@ -5,7 +5,6 @@ const ethUtil = require('ethereumjs-util')
 const { BN } = ethUtil
 const bip39 = require('bip39')
 const ObservableStore = require('obs-store')
-const filter = require('promise-filter')
 const encryptor = require('browser-passworder')
 const { normalize: normalizeAddress } = require('eth-sig-util')
 
@@ -84,7 +83,7 @@ class KeyringController extends EventEmitter {
 
   constructor (opts) {
     super()
-    const initState = opts.initState || {}
+    const initState = opts.initState || { isCreatedWithCorrectDPath: false }
     this.keyringTypes = opts.keyringTypes ? keyringTypes.concat(opts.keyringTypes) : keyringTypes
     this.store = new ObservableStore(initState)
     this.memStore = new ObservableStore({
@@ -132,6 +131,7 @@ class KeyringController extends EventEmitter {
       .then(this.createFirstKeyTree.bind(this))
       .then(this.persistAllKeyrings.bind(this, password))
       .then(this.setUnlocked.bind(this))
+      .then(this.setCreatedWithCorrectDPath.bind(this))
       .then(this.fullUpdate.bind(this))
   }
 
@@ -178,6 +178,7 @@ class KeyringController extends EventEmitter {
       })
       .then(this.persistAllKeyrings.bind(this, password))
       .then(this.setUnlocked.bind(this))
+      .then(this.setCreatedWithCorrectDPath.bind(this))
       .then(this.fullUpdate.bind(this))
   }
 
@@ -904,6 +905,14 @@ class KeyringController extends EventEmitter {
   setUnlocked () {
     this.memStore.updateState({ isUnlocked: true })
     this.emit('unlock', true)
+  }
+
+  setCreatedWithCorrectDPath () {
+    this.store.updateState({ isCreatedWithCorrectDPath: true })
+  }
+
+  isCreatedWithCorrectDPath () {
+    return Promise.resolve(this.store.getState().isCreatedWithCorrectDPath)
   }
 
 }
