@@ -83,11 +83,7 @@ class KeyringController extends EventEmitter {
 
   constructor (opts) {
     super()
-    let initState = opts && opts.initState
-    if (initState) {
-      initState = Object.assign(initState, { isCreatedWithCorrectDPath: false })
-    }
-    initState = initState || { isCreatedWithCorrectDPath: false }
+    const initState = opts.initState || { isCreatedWithCorrectDPath: false }
     this.keyringTypes = opts.keyringTypes ? keyringTypes.concat(opts.keyringTypes) : keyringTypes
     this.store = new ObservableStore(initState)
     this.memStore = new ObservableStore({
