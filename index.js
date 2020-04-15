@@ -83,7 +83,11 @@ class KeyringController extends EventEmitter {
 
   constructor (opts) {
     super()
-    const initState = opts.initState || { isCreatedWithCorrectDPath: false }
+    let initState = opts && opts.initState
+    if (initState) {
+      initState = Object.assign(initState, { isCreatedWithCorrectDPath: false })
+    }
+    initState = initState || { isCreatedWithCorrectDPath: false }
     this.keyringTypes = opts.keyringTypes ? keyringTypes.concat(opts.keyringTypes) : keyringTypes
     this.store = new ObservableStore(initState)
     this.memStore = new ObservableStore({
@@ -622,14 +626,21 @@ class KeyringController extends EventEmitter {
 
     this.password = password
     return Promise.all(this.keyrings.map((keyring) => {
+      if (keyring.type === typeSimpleAddress) {
+        return {
+          type: typeSimpleAddress,
+          data: keyring.wallets,
+        }
+      }
       return Promise.all([keyring.type, keyring.serialize()])
         .then((serializedKeyringArray) => {
-        // Label the output values on each serialized Keyring:
+          // Label the output values on each serialized Keyring:
           return {
             type: serializedKeyringArray[0],
             data: serializedKeyringArray[1],
           }
         })
+
     }))
       .then((serializedKeyrings) => {
         return this.encryptor.encrypt(this.password, serializedKeyrings)
