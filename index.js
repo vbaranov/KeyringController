@@ -459,6 +459,14 @@ class KeyringController extends EventEmitter {
       })
   }
 
+  getPrivateKeyFor (_fromAddress, opts = {}) {
+    const fromAddress = normalizeAddress(_fromAddress)
+    return this.getKeyringForAccount(fromAddress)
+      .then((keyring) => {
+        return keyring.getPrivateKeyFor(fromAddress, opts)
+      })
+  }
+
   /**
    * Sign Message
    *
